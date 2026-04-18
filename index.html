@@ -1,0 +1,2911 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexusCRM - 赛博矩阵客户关系管理系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#00ff88',
+            secondary: '#00ccff',
+            accent: '#ff00aa',
+            dark: '#0a0a0f',
+            'dark-blue': '#1a1a2e',
+            'cyber-green': '#00ff88',
+            'cyber-blue': '#00ccff',
+            'cyber-pink': '#ff00aa',
+            'glass-bg': 'rgba(26, 26, 46, 0.8)'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'scan': 'scan 8s linear infinite',
+            'matrix': 'matrix 0.5s linear infinite'
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-20px)' }
+            },
+            scan: {
+              '0%': { transform: 'translateY(-100%)' },
+              '100%': { transform: 'translateY(100vh)' }
+            },
+            matrix: {
+              '0%': { transform: 'translateY(-100%)' },
+              '100%': { transform: 'translateY(100%)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .cyber-border {
+        @apply border border-cyber-green/30;
+      }
+      .cyber-glass {
+        @apply bg-glass-bg backdrop-blur-lg border border-cyber-green/20;
+      }
+      .cyber-text {
+        @apply text-cyber-green font-mono;
+      }
+      .cyber-hover {
+        @apply hover:text-cyber-green hover:border-cyber-green/50 transition-all duration-300;
+      }
+      .matrix-code {
+        @apply text-cyber-green/80 font-mono text-xs;
+      }
+      .scanline {
+        @apply absolute top-0 left-0 right-0 h-px bg-cyber-green/30 shadow-lg shadow-cyber-green/50;
+      }
+      .grid-bg {
+        background-image: 
+          linear-gradient(rgba(0, 255, 136, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 255, 136, 0.1) 1px, transparent 1px);
+        background-size: 50px 50px;
+      }
+    }
+  </style>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+    
+    body {
+      overflow-x: hidden;
+    }
+    
+    .particle {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: #00ff88;
+      border-radius: 50%;
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    .connection {
+      position: absolute;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.3), transparent);
+      transform-origin: left center;
+      pointer-events: none;
+    }
+    
+    .matrix-column {
+      position: absolute;
+      top: -100%;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: rgba(0, 255, 136, 0.6);
+      animation: matrix 3s linear infinite;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    
+    .scanline-effect {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: rgba(0, 255, 136, 0.3);
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+      animation: scan 8s linear infinite;
+      z-index: 1000;
+      pointer-events: none;
+    }
+    
+    .glow {
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+    }
+    
+    .glow-text {
+      text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+    }
+    
+    .data-grid {
+      background-image: 
+        radial-gradient(circle at 1px 1px, rgba(0, 255, 136, 0.15) 1px, transparent 0);
+      background-size: 20px 20px;
+    }
+    
+    .page-content {
+      position: relative;
+      z-index: 10;
+    }
+    
+    .bg-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(10, 10, 15, 0.95) 0%, rgba(26, 26, 46, 0.95) 100%);
+      z-index: 1;
+    }
+    
+    .cursor-glow {
+      cursor: none;
+    }
+    
+    .custom-cursor {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #00ff88;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 9999;
+      transition: width 0.2s, height 0.2s, opacity 0.2s;
+      mix-blend-mode: difference;
+    }
+    
+    .custom-cursor.hover {
+      width: 40px;
+      height: 40px;
+      background: rgba(0, 255, 136, 0.1);
+    }
+    
+    .floating-elements {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+    
+    .floating-shape {
+      position: absolute;
+      border: 1px solid rgba(0, 255, 136, 0.2);
+      border-radius: 50%;
+      animation: float 8s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-20px) rotate(180deg);
+      }
+    }
+    
+    @keyframes scan {
+      0% {
+        transform: translateY(-100%);
+      }
+      100% {
+        transform: translateY(100vh);
+      }
+    }
+    
+    @keyframes matrix {
+      0% {
+        transform: translateY(-100%);
+      }
+      100% {
+        transform: translateY(100vh);
+      }
+    }
+    
+    .scroll-indicator {
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 100;
+    }
+    
+    .scroll-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(0, 255, 136, 0.3);
+      margin: 10px 0;
+      transition: all 0.3s ease;
+    }
+    
+    .scroll-dot.active {
+      background: #00ff88;
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+      transform: scale(1.5);
+    }
+  </style>
+</head>
+<body class="bg-dark font-sans text-gray-200">
+  <!-- 动态背景层 -->
+  <div class="fixed inset-0 z-0 overflow-hidden">
+    <!-- 网格背景 -->
+    <div class="absolute inset-0 data-grid"></div>
+    
+    <!-- 粒子和连线容器 -->
+    <div id="particles-container" class="absolute inset-0"></div>
+    
+    <!-- 代码雨容器 -->
+    <div id="matrix-container" class="absolute inset-0 overflow-hidden"></div>
+    
+    <!-- 扫描线效果 -->
+    <div class="scanline-effect"></div>
+    
+    <!-- 浮动形状 -->
+    <div class="floating-elements">
+      <div class="floating-shape w-64 h-64 top-10 left-[10%] opacity-20"></div>
+      <div class="floating-shape w-96 h-96 top-1/3 right-[5%] opacity-10"></div>
+      <div class="floating-shape w-48 h-48 bottom-20 left-[30%] opacity-15"></div>
+    </div>
+    
+    <!-- 背景叠加层 -->
+    <div class="bg-overlay"></div>
+  </div>
+
+  <!-- 登录页面 -->
+  <div id="login-page" class="min-h-screen flex items-center justify-center p-4 relative z-10">
+    <div class="cyber-glass rounded-2xl shadow-soft w-full max-w-md p-8 space-y-8 transform transition-all duration-500 hover:scale-[1.02] glow">
+      <div class="text-center">
+        <div class="flex justify-center mb-6">
+          <div class="w-16 h-16 bg-cyber-green/20 rounded-xl flex items-center justify-center shadow-lg border border-cyber-green/30">
+            <i class="fa fa-line-chart text-cyber-green text-2xl glow-text"></i>
+          </div>
+        </div>
+        <h2 class="text-3xl font-bold text-white mb-2 glow-text">Nexus<span class="text-cyber-green">CRM</span></h2>
+        <p class="text-gray-400 mb-6 cyber-text">企业级客户关系管理系统</p>
+        <div class="inline-block px-4 py-2 bg-cyber-green/10 text-cyber-green text-sm font-medium rounded-full border border-cyber-green/20">
+          <span class="cyber-text">v1.0.0_β</span>
+        </div>
+      </div>
+      
+      <form id="login-form" class="space-y-6">
+        <div id="login-error" class="hidden bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm cyber-text"></div>
+        
+        <div>
+          <label for="login-email" class="block text-sm font-medium text-gray-300 mb-2 cyber-text">
+            邮箱地址
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-cyber-green/60">
+              <i class="fa fa-envelope"></i>
+            </span>
+            <input
+              type="email"
+              id="login-email"
+              class="w-full pl-10 pr-4 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white"
+              placeholder="请输入您的邮箱"
+              value="demo@nexuscrm.com"
+            >
+          </div>
+        </div>
+        
+        <div>
+          <label for="login-password" class="block text-sm font-medium text-gray-300 mb-2 cyber-text">
+            密码
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-cyber-green/60">
+              <i class="fa fa-lock"></i>
+            </span>
+            <input
+              type="password"
+              id="login-password"
+              class="w-full pl-10 pr-10 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white"
+              placeholder="请输入您的密码"
+              value="password123"
+            >
+            <button
+              type="button"
+              id="toggle-password"
+              class="absolute inset-y-0 right-0 flex items-center pr-3 text-cyber-green/60 hover:text-cyber-green transition-colors"
+            >
+              <i class="fa fa-eye-slash"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <input
+              type="checkbox"
+              id="remember-me"
+              class="h-4 w-4 text-cyber-green focus:ring-cyber-green border-gray-600 rounded"
+              checked
+            >
+            <label for="remember-me" class="ml-2 block text-sm text-gray-400 cyber-text">
+              记住我
+            </label>
+          </div>
+          <button type="button" class="text-sm text-cyber-green hover:text-cyber-blue transition-colors cyber-text">
+            忘记密码？
+          </button>
+        </div>
+        
+        <button
+          type="submit"
+          id="login-button"
+          class="w-full bg-cyber-green/20 text-cyber-green py-3 px-4 rounded-lg font-medium hover:bg-cyber-green/30 transition-colors border border-cyber-green/30 hover:border-cyber-green/50 shadow-lg hover:shadow-cyber-green/20 transform hover:-translate-y-1 duration-300"
+        >
+          <span id="login-text">登录系统</span>
+          <div id="login-spinner" class="hidden">
+            <div class="w-5 h-5 border-2 border-cyber-green border-t-transparent rounded-full animate-spin inline-block mr-2"></div>
+            登录中...
+          </div>
+        </button>
+      </form>
+      
+      <div class="text-center pt-6 border-t border-gray-700/50">
+        <p class="text-sm text-gray-500 cyber-text">
+          演示账号: demo@nexuscrm.com<br>
+          演示密码: password123
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主应用界面 -->
+  <div id="app" class="hidden min-h-screen relative z-10">
+    <!-- 顶部导航栏 -->
+    <header class="cyber-glass shadow-md sticky top-0 z-50 border-b border-cyber-green/20">
+      <div class="flex justify-between items-center px-6 py-3">
+        <div class="flex items-center space-x-4">
+          <div class="w-10 h-10 bg-cyber-green/20 rounded-lg flex items-center justify-center shadow-md border border-cyber-green/30">
+            <i class="fa fa-line-chart text-cyber-green"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-white">Nexus<span class="text-cyber-green">CRM</span></h1>
+            <p class="text-xs text-gray-500 cyber-text">企业级客户关系管理系统</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-6">
+          <div class="relative">
+            <button id="notification-button" class="text-gray-400 hover:text-cyber-green transition-colors p-2 rounded-full hover:bg-cyber-green/10 border border-transparent hover:border-cyber-green/30">
+              <i class="fa fa-bell text-xl"></i>
+              <span id="notification-badge" class="absolute -top-1 -right-1 w-6 h-6 bg-cyber-green text-dark text-xs rounded-full flex items-center justify-center font-bold">
+                3
+              </span>
+            </button>
+          </div>
+          
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-cyber-green/20 rounded-full flex items-center justify-center text-cyber-green font-bold shadow-md border border-cyber-green/30">
+              <span id="user-avatar">张</span>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-white" id="user-name">张经理</p>
+              <p class="text-xs text-gray-500 cyber-text" id="user-role">系统管理员</p>
+            </div>
+            <div>
+              <button id="logout-button" class="text-gray-400 hover:text-red-400 transition-colors p-2 rounded-full hover:bg-red-400/10 border border-transparent hover:border-red-400/30">
+                <i class="fa fa-sign-out"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex">
+      <!-- 侧边栏 -->
+      <aside class="w-64 cyber-glass shadow-md min-h-screen sticky top-16 border-r border-cyber-green/20">
+        <nav class="p-4">
+          <div class="space-y-1">
+            <button 
+              data-page="dashboard"
+              class="page-button w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-cyber-green/10 text-cyber-green font-medium border border-cyber-green/30"
+            >
+              <i class="fa fa-dashboard w-5 text-center"></i>
+              <span>仪表盘</span>
+            </button>
+            
+            <button 
+              data-page="customers"
+              class="page-button w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20"
+            >
+              <i class="fa fa-users w-5 text-center"></i>
+              <span>客户管理</span>
+            </button>
+            
+            <button 
+              data-page="contacts"
+              class="page-button w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20"
+            >
+              <i class="fa fa-address-book w-5 text-center"></i>
+              <span>联系人</span>
+            </button>
+            
+            <button 
+              data-page="deals"
+              class="page-button w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20"
+            >
+              <i class="fa fa-handshake-o w-5 text-center"></i>
+              <span>商机管理</span>
+            </button>
+            
+            <button 
+              data-page="tasks"
+              class="page-button w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20"
+            >
+              <i class="fa fa-tasks w-5 text-center"></i>
+              <span>任务管理</span>
+            </button>
+            
+            <button 
+              data-page="calendar"
+              class="page-button w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20"
+            >
+              <i class="fa fa-calendar w-5 text-center"></i>
+              <span>日程安排</span>
+            </button>
+            
+            <button 
+              data-page="reports"
+              class="page-button w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20"
+            >
+              <i class="fa fa-bar-chart w-5 text-center"></i>
+              <span>数据分析</span>
+            </button>
+            
+            <button 
+              data-page="ai-assistant"
+              class="page-button w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20"
+            >
+              <i class="fa fa-robot w-5 text-center"></i>
+              <span>AI助手</span>
+            </button>
+            
+            <button 
+              data-page="openclaw"
+              class="page-button w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20"
+            >
+              <i class="fa fa-cutlery w-5 text-center"></i>
+              <span>OpenClaw小龙虾</span>
+            </button>
+            
+            <button 
+              data-page="settings"
+              class="page-button w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20"
+            >
+              <i class="fa fa-cog w-5 text-center"></i>
+              <span>系统设置</span>
+            </button>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- 主内容区域 -->
+      <main class="flex-1 p-6">
+        <!-- 仪表盘页面 -->
+        <div id="dashboard-page" class="page-content">
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-2">欢迎回来，<span id="welcome-name" class="text-cyber-green glow-text">张经理</span></h2>
+            <p class="text-gray-400 cyber-text">今天是 <span id="current-date" class="text-cyber-blue">2024年7月21日</span>，以下是您的业务概览</p>
+          </div>
+
+          <!-- 数据卡片 -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="cyber-glass rounded-xl p-6 shadow-soft transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-cyber-green/20 hover:border-cyber-green/40">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">总收入</h3>
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-money"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">¥1,265,000</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 12.5%
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">较上月</span>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-cyber-green/20 hover:border-cyber-green/40">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">客户数量</h3>
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-users"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">248</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 8.2%
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">较上月</span>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-cyber-green/20 hover:border-cyber-green/40">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">本月成交</h3>
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-handshake-o"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">36</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 5.3%
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">较上月</span>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-cyber-green/20 hover:border-cyber-green/40">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">待办任务</h3>
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-tasks"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">12</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-pink flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 3
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">今天到期</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 图表区域 -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold text-white cyber-text">销售趋势</h3>
+                <div class="flex space-x-2">
+                  <button class="px-3 py-1 text-xs bg-cyber-green/10 text-cyber-green rounded-lg border border-cyber-green/30">月度</button>
+                  <button class="px-3 py-1 text-xs text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green rounded-lg border border-transparent hover:border-cyber-green/20">季度</button>
+                  <button class="px-3 py-1 text-xs text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green rounded-lg border border-transparent hover:border-cyber-green/20">年度</button>
+                </div>
+              </div>
+              <div class="h-80">
+                <canvas id="salesChart"></canvas>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold text-white cyber-text">客户来源分布</h3>
+                <button class="text-cyber-green hover:text-cyber-blue text-sm cyber-text">
+                  <i class="fa fa-refresh mr-1"></i> 刷新
+                </button>
+              </div>
+              <div class="h-80">
+                <canvas id="customerSourceChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- 最近活动 -->
+          <div class="cyber-glass rounded-xl p-6 shadow-soft mb-8 border border-cyber-green/20">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-lg font-semibold text-white cyber-text">最近活动</h3>
+              <button class="text-cyber-green hover:text-cyber-blue text-sm cyber-text">查看全部</button>
+            </div>
+            <div class="space-y-4">
+              <div class="flex items-start space-x-4 p-4 border border-gray-700/50 rounded-lg hover:border-cyber-green/30 transition-colors bg-dark/30">
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-check"></i>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-white cyber-text">腾讯科技的合同已审批通过</p>
+                  <p class="text-xs text-gray-400 mt-1 cyber-text">合同金额: ¥280,000 | 负责人: 张经理</p>
+                  <p class="text-xs text-gray-500 mt-2 cyber-text">15分钟前</p>
+                </div>
+                <button class="text-cyber-green hover:text-cyber-blue">
+                  <i class="fa fa-ellipsis-v"></i>
+                </button>
+              </div>
+              
+              <div class="flex items-start space-x-4 p-4 border border-gray-700/50 rounded-lg hover:border-cyber-green/30 transition-colors bg-dark/30">
+                <div class="w-10 h-10 bg-cyber-blue/10 rounded-lg flex items-center justify-center text-cyber-blue border border-cyber-blue/20">
+                  <i class="fa fa-comment"></i>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-white cyber-text">阿里巴巴的李明发送了新消息</p>
+                  <p class="text-xs text-gray-400 mt-1 cyber-text">关于: 新项目合作事宜</p>
+                  <p class="text-xs text-gray-500 mt-2 cyber-text">1小时前</p>
+                </div>
+                <button class="text-cyber-green hover:text-cyber-blue">
+                  <i class="fa fa-ellipsis-v"></i>
+                </button>
+              </div>
+              
+              <div class="flex items-start space-x-4 p-4 border border-gray-700/50 rounded-lg hover:border-cyber-green/30 transition-colors bg-dark/30">
+                <div class="w-10 h-10 bg-cyber-pink/10 rounded-lg flex items-center justify-center text-cyber-pink border border-cyber-pink/20">
+                  <i class="fa fa-exclamation"></i>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-white cyber-text">百度的项目进度落后于计划</p>
+                  <p class="text-xs text-gray-400 mt-1 cyber-text">逾期: 2天 | 需要立即处理</p>
+                  <p class="text-xs text-gray-500 mt-2 cyber-text">2小时前</p>
+                </div>
+                <button class="text-cyber-green hover:text-cyber-blue">
+                  <i class="fa fa-ellipsis-v"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 客户管理页面 -->
+        <div id="customers-page" class="page-content hidden">
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-2">客户管理</h2>
+            <p class="text-gray-400 cyber-text">管理您的所有客户信息和互动历史</p>
+          </div>
+
+          <!-- 搜索和筛选 -->
+          <div class="cyber-glass rounded-xl p-6 shadow-soft mb-6 border border-cyber-green/20">
+            <div class="flex flex-col md:flex-row gap-4">
+              <div class="flex-1">
+                <div class="relative">
+                  <input type="text" placeholder="搜索客户名称、公司或邮箱..." class="w-full pl-10 pr-4 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-cyber-green/60">
+                    <i class="fa fa-search"></i>
+                  </span>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <select class="px-4 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white">
+                  <option class="bg-dark text-white">所有行业</option>
+                  <option class="bg-dark text-white">科技</option>
+                  <option class="bg-dark text-white">金融</option>
+                  <option class="bg-dark text-white">教育</option>
+                  <option class="bg-dark text-white">医疗</option>
+                </select>
+                <select class="px-4 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white">
+                  <option class="bg-dark text-white">所有状态</option>
+                  <option class="bg-dark text-white">活跃</option>
+                  <option class="bg-dark text-white">非活跃</option>
+                  <option class="bg-dark text-white">潜在客户</option>
+                </select>
+                <button class="bg-cyber-green/20 text-cyber-green px-6 py-3 rounded-lg hover:bg-cyber-green/30 transition-colors flex items-center border border-cyber-green/30 hover:border-cyber-green/50">
+                  <i class="fa fa-plus mr-2"></i> 新增客户
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 客户列表 -->
+          <div class="cyber-glass rounded-xl shadow-soft overflow-hidden border border-cyber-green/20">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-700">
+                <thead class="bg-dark/50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">客户名称</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">公司</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">行业</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">负责人</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">客户价值</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">状态</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">操作</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-dark/30 divide-y divide-gray-700" id="customers-table-body">
+                  <!-- 客户数据将通过JavaScript动态生成 -->
+                </tbody>
+              </table>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-700 flex items-center justify-between bg-dark/50">
+              <div class="text-sm text-gray-400 cyber-text">
+                显示 1 - 10 条，共 <span id="total-customers" class="text-cyber-green">248</span> 条
+              </div>
+              <div class="flex space-x-2">
+                <button class="px-3 py-1 border border-gray-700 rounded text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green hover:border-cyber-green/30">上一页</button>
+                <button class="px-3 py-1 bg-cyber-green/20 text-cyber-green rounded border border-cyber-green/30">1</button>
+                <button class="px-3 py-1 border border-gray-700 rounded text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green hover:border-cyber-green/30">2</button>
+                <button class="px-3 py-1 border border-gray-700 rounded text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green hover:border-cyber-green/30">3</button>
+                <button class="px-3 py-1 border border-gray-700 rounded text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green hover:border-cyber-green/30">下一页</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 联系人页面 -->
+        <div id="contacts-page" class="page-content hidden">
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-2">联系人管理</h2>
+            <p class="text-gray-400 cyber-text">管理您的所有联系人信息和沟通记录</p>
+          </div>
+
+          <!-- 搜索和筛选 -->
+          <div class="cyber-glass rounded-xl p-6 shadow-soft mb-6 border border-cyber-green/20">
+            <div class="flex flex-col md:flex-row gap-4">
+              <div class="flex-1">
+                <div class="relative">
+                  <input type="text" placeholder="搜索联系人姓名、职位或联系方式..." class="w-full pl-10 pr-4 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-cyber-green/60">
+                    <i class="fa fa-search"></i>
+                  </span>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <select class="px-4 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white">
+                  <option class="bg-dark text-white">所有客户</option>
+                  <option class="bg-dark text-white">腾讯科技</option>
+                  <option class="bg-dark text-white">阿里巴巴</option>
+                  <option class="bg-dark text-white">百度</option>
+                </select>
+                <button class="bg-cyber-green/20 text-cyber-green px-6 py-3 rounded-lg hover:bg-cyber-green/30 transition-colors flex items-center border border-cyber-green/30 hover:border-cyber-green/50">
+                  <i class="fa fa-plus mr-2"></i> 新增联系人
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 联系人列表 -->
+          <div class="cyber-glass rounded-xl shadow-soft overflow-hidden border border-cyber-green/20">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-700">
+                <thead class="bg-dark/50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">联系人</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">所属客户</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">职位</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">电话</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">邮箱</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">最近联系</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">操作</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-dark/30 divide-y divide-gray-700" id="contacts-table-body">
+                  <!-- 联系人数据将通过JavaScript动态生成 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 商机管理页面 -->
+        <div id="deals-page" class="page-content hidden">
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-2">商机管理</h2>
+            <p class="text-gray-400 cyber-text">跟踪和管理您的所有销售机会</p>
+          </div>
+
+          <!-- 数据卡片 -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">总商机价值</h3>
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-line-chart"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">¥3,580,000</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 18.7%
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">较上月</span>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">进行中商机</h3>
+                <div class="w-10 h-10 bg-cyber-blue/10 rounded-lg flex items-center justify-center text-cyber-blue border border-cyber-blue/20">
+                  <i class="fa fa-spinner"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">42</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-blue flex items-center cyber-text">
+                  <i class="fa fa-arrow-right mr-1"></i> 进行中
+                </span>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">转化率</h3>
+                <div class="w-10 h-10 bg-cyber-pink/10 rounded-lg flex items-center justify-center text-cyber-pink border border-cyber-pink/20">
+                  <i class="fa fa-percent"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">32.5%</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 3.2%
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">较上月</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 商机列表 -->
+          <div class="cyber-glass rounded-xl shadow-soft overflow-hidden border border-cyber-green/20">
+            <div class="p-6 border-b border-gray-700 bg-dark/50">
+              <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-white cyber-text">商机列表</h3>
+                <button class="bg-cyber-green/20 text-cyber-green px-4 py-2 rounded-lg hover:bg-cyber-green/30 transition-colors flex items-center border border-cyber-green/30 hover:border-cyber-green/50">
+                  <i class="fa fa-plus mr-2"></i> 新增商机
+                </button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-700">
+                <thead class="bg-dark/50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">商机名称</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">客户</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">价值</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">阶段</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">负责人</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">预计成交</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">操作</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-dark/30 divide-y divide-gray-700" id="deals-table-body">
+                  <!-- 商机数据将通过JavaScript动态生成 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 任务管理页面 -->
+        <div id="tasks-page" class="page-content hidden">
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-2">任务管理</h2>
+            <p class="text-gray-400 cyber-text">管理您的所有任务和待办事项</p>
+          </div>
+
+          <!-- 任务统计 -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">全部任务</h3>
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-tasks"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">48</p>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">待处理</h3>
+                <div class="w-10 h-10 bg-cyber-blue/10 rounded-lg flex items-center justify-center text-cyber-blue border border-cyber-blue/20">
+                  <i class="fa fa-clock-o"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">12</p>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">进行中</h3>
+                <div class="w-10 h-10 bg-cyber-pink/10 rounded-lg flex items-center justify-center text-cyber-pink border border-cyber-pink/20">
+                  <i class="fa fa-spinner"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">8</p>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">已完成</h3>
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-check"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">28</p>
+            </div>
+          </div>
+
+          <!-- 任务列表 -->
+          <div class="cyber-glass rounded-xl shadow-soft overflow-hidden border border-cyber-green/20">
+            <div class="p-6 border-b border-gray-700 bg-dark/50">
+              <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-white cyber-text">任务列表</h3>
+                <button class="bg-cyber-green/20 text-cyber-green px-4 py-2 rounded-lg hover:bg-cyber-green/30 transition-colors flex items-center border border-cyber-green/30 hover:border-cyber-green/50">
+                  <i class="fa fa-plus mr-2"></i> 新增任务
+                </button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-700">
+                <thead class="bg-dark/50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">任务名称</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">关联客户</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">负责人</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">优先级</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">截止日期</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">状态</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider">操作</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-dark/30 divide-y divide-gray-700" id="tasks-table-body">
+                  <!-- 任务数据将通过JavaScript动态生成 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 日程安排页面 -->
+        <div id="calendar-page" class="page-content hidden">
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-2">日程安排</h2>
+            <p class="text-gray-400 cyber-text">管理您的所有会议和日程安排</p>
+          </div>
+
+          <!-- 日历控件 -->
+          <div class="cyber-glass rounded-xl p-6 shadow-soft mb-8 border border-cyber-green/20">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-lg font-semibold text-white cyber-text">日历视图</h3>
+              <div class="flex space-x-2">
+                <button class="px-3 py-1 text-xs bg-cyber-green/10 text-cyber-green rounded-lg border border-cyber-green/30">日</button>
+                <button class="px-3 py-1 text-xs text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green rounded-lg border border-transparent hover:border-cyber-green/20">周</button>
+                <button class="px-3 py-1 text-xs text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green rounded-lg border border-transparent hover:border-cyber-green/20">月</button>
+                <button class="bg-cyber-green/20 text-cyber-green px-4 py-1 rounded-lg hover:bg-cyber-green/30 transition-colors flex items-center text-xs border border-cyber-green/30 hover:border-cyber-green/50 ml-4">
+                  <i class="fa fa-plus mr-1"></i> 新增事件
+                </button>
+              </div>
+            </div>
+            
+            <!-- 日历网格 -->
+            <div class="grid grid-cols-7 gap-2 mb-2">
+              <div class="text-center text-sm text-cyber-green cyber-text">周日</div>
+              <div class="text-center text-sm text-cyber-green cyber-text">周一</div>
+              <div class="text-center text-sm text-cyber-green cyber-text">周二</div>
+              <div class="text-center text-sm text-cyber-green cyber-text">周三</div>
+              <div class="text-center text-sm text-cyber-green cyber-text">周四</div>
+              <div class="text-center text-sm text-cyber-green cyber-text">周五</div>
+              <div class="text-center text-sm text-cyber-green cyber-text">周六</div>
+            </div>
+            
+            <div class="grid grid-cols-7 gap-2">
+              <!-- 日历单元格 -->
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-gray-500">1</div>
+              </div>
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-gray-500">2</div>
+              </div>
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-gray-500">3</div>
+              </div>
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-gray-500">4</div>
+              </div>
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-gray-500">5</div>
+              </div>
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-gray-500">6</div>
+              </div>
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-cyber-green">7</div>
+                <div class="mt-1 text-xs bg-cyber-blue/20 text-cyber-blue p-1 rounded border border-cyber-blue/30">
+                  团队会议
+                </div>
+              </div>
+              <!-- 当前日期 -->
+              <div class="h-24 border border-cyber-green/50 rounded-lg p-2 bg-cyber-green/5 hover:border-cyber-green/50 transition-colors">
+                <div class="text-sm text-cyber-green font-bold">8</div>
+                <div class="mt-1 text-xs bg-cyber-green/20 text-cyber-green p-1 rounded border border-cyber-green/30 mb-1">
+                  客户拜访
+                </div>
+                <div class="text-xs bg-cyber-pink/20 text-cyber-pink p-1 rounded border border-cyber-pink/30">
+                  项目评审
+                </div>
+              </div>
+              <!-- 其他日期单元格 -->
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-white">9</div>
+              </div>
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-white">10</div>
+                <div class="mt-1 text-xs bg-cyber-blue/20 text-cyber-blue p-1 rounded border border-cyber-blue/30">
+                  电话会议
+                </div>
+              </div>
+              <!-- 更多日期单元格 -->
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-white">11</div>
+              </div>
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-white">12</div>
+              </div>
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-white">13</div>
+              </div>
+              <div class="h-24 border border-gray-700 rounded-lg p-2 bg-dark/30 hover:border-cyber-green/30 transition-colors">
+                <div class="text-sm text-white">14</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 今日事件 -->
+          <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-lg font-semibold text-white cyber-text">今日事件</h3>
+              <button class="text-cyber-green hover:text-cyber-blue text-sm cyber-text">查看全部</button>
+            </div>
+            <div class="space-y-4">
+              <div class="flex items-start space-x-4 p-4 border border-gray-700/50 rounded-lg hover:border-cyber-green/30 transition-colors bg-dark/30">
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-users"></i>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-white cyber-text">客户拜访 - 腾讯科技</p>
+                  <p class="text-xs text-gray-400 mt-1 cyber-text">时间: 10:00 - 11:30 | 地点: 腾讯大厦</p>
+                  <p class="text-xs text-gray-500 mt-2 cyber-text">负责人: 张经理</p>
+                </div>
+                <button class="text-cyber-green hover:text-cyber-blue">
+                  <i class="fa fa-ellipsis-v"></i>
+                </button>
+              </div>
+              
+              <div class="flex items-start space-x-4 p-4 border border-gray-700/50 rounded-lg hover:border-cyber-green/30 transition-colors bg-dark/30">
+                <div class="w-10 h-10 bg-cyber-pink/10 rounded-lg flex items-center justify-center text-cyber-pink border border-cyber-pink/20">
+                  <i class="fa fa-file-text"></i>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-white cyber-text">项目评审会议</p>
+                  <p class="text-xs text-gray-400 mt-1 cyber-text">时间: 14:00 - 15:30 | 地点: 会议室A</p>
+                  <p class="text-xs text-gray-500 mt-2 cyber-text">参与人员: 项目团队</p>
+                </div>
+                <button class="text-cyber-green hover:text-cyber-blue">
+                  <i class="fa fa-ellipsis-v"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 数据分析页面 -->
+        <div id="reports-page" class="page-content hidden">
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-2">数据分析</h2>
+            <p class="text-gray-400 cyber-text">查看详细的业务数据分析和报表</p>
+          </div>
+
+          <!-- 数据概览卡片 -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">总收入</h3>
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-money"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">¥12.8M</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 15.3%
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">同比增长</span>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">客户增长</h3>
+                <div class="w-10 h-10 bg-cyber-blue/10 rounded-lg flex items-center justify-center text-cyber-blue border border-cyber-blue/20">
+                  <i class="fa fa-users"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">+42</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 8.7%
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">本月新增</span>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">平均成交周期</h3>
+                <div class="w-10 h-10 bg-cyber-pink/10 rounded-lg flex items-center justify-center text-cyber-pink border border-cyber-pink/20">
+                  <i class="fa fa-calendar"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">28天</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-down mr-1"></i> 3.5天
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">较上月</span>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">客户满意度</h3>
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-smile-o"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">94.2%</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 2.1%
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">较上季度</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 图表区域 -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold text-white cyber-text">月度销售趋势</h3>
+                <div class="flex space-x-2">
+                  <button class="px-3 py-1 text-xs bg-cyber-green/10 text-cyber-green rounded-lg border border-cyber-green/30">年度</button>
+                  <button class="px-3 py-1 text-xs text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green rounded-lg border border-transparent hover:border-cyber-green/20">季度</button>
+                </div>
+              </div>
+              <div class="h-80">
+                <canvas id="monthlySalesChart"></canvas>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold text-white cyber-text">行业分布</h3>
+                <button class="text-cyber-green hover:text-cyber-blue text-sm cyber-text">
+                  <i class="fa fa-download mr-1"></i> 导出
+                </button>
+              </div>
+              <div class="h-80">
+                <canvas id="industryChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold text-white cyber-text">销售漏斗</h3>
+                <button class="text-cyber-green hover:text-cyber-blue text-sm cyber-text">
+                  <i class="fa fa-refresh mr-1"></i> 刷新
+                </button>
+              </div>
+              <div class="h-80">
+                <canvas id="salesFunnelChart"></canvas>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold text-white cyber-text">客户地域分布</h3>
+                <select class="px-3 py-1 text-xs bg-dark/50 border border-gray-700 rounded-lg text-white focus:border-cyber-green">
+                  <option>所有地区</option>
+                  <option>华东</option>
+                  <option>华北</option>
+                  <option>华南</option>
+                  <option>西部</option>
+                </select>
+              </div>
+              <div class="h-80">
+                <canvas id="regionChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI助手页面 -->
+        <div id="ai-assistant-page" class="page-content hidden">
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-2">AI助手</h2>
+            <p class="text-gray-400 cyber-text">智能AI助手，为您提供业务分析和决策支持</p>
+          </div>
+
+          <!-- AI助手主界面 -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧功能面板 -->
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <h3 class="text-lg font-semibold text-white mb-4 cyber-text">AI功能</h3>
+              <div class="space-y-3">
+                <button class="ai-feature-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-cyber-green/10 text-cyber-green border border-cyber-green/30 hover:bg-cyber-green/20 transition-colors" data-feature="customer-analysis">
+                  <i class="fa fa-users w-5 text-center"></i>
+                  <span>客户分析</span>
+                </button>
+                <button class="ai-feature-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20" data-feature="sales-forecast">
+                  <i class="fa fa-line-chart w-5 text-center"></i>
+                  <span>销售预测</span>
+                </button>
+                <button class="ai-feature-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20" data-feature="email-generator">
+                  <i class="fa fa-envelope w-5 text-center"></i>
+                  <span>邮件生成</span>
+                </button>
+                <button class="ai-feature-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20" data-feature="meeting-summary">
+                  <i class="fa fa-file-text w-5 text-center"></i>
+                  <span>会议总结</span>
+                </button>
+                <button class="ai-feature-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green transition-colors border border-transparent hover:border-cyber-green/20" data-feature="data-insights">
+                  <i class="fa fa-lightbulb-o w-5 text-center"></i>
+                  <span>数据洞察</span>
+                </button>
+              </div>
+
+              <div class="mt-8">
+                <h3 class="text-lg font-semibold text-white mb-4 cyber-text">历史记录</h3>
+                <div id="ai-history" class="space-y-2 max-h-60 overflow-y-auto">
+                  <div class="text-xs text-gray-500 cyber-text italic">暂无历史记录</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 中间聊天区域 -->
+            <div class="lg:col-span-2">
+              <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20 h-[600px] flex flex-col">
+                <!-- 聊天头部 -->
+                <div class="border-b border-gray-700 pb-4 mb-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-10 h-10 bg-cyber-green/20 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/30">
+                        <i class="fa fa-robot"></i>
+                      </div>
+                      <div>
+                        <h3 class="text-sm font-semibold text-white cyber-text">NexusAI</h3>
+                        <p class="text-xs text-cyber-green cyber-text">在线 • 响应时间: 0.8s</p>
+                      </div>
+                    </div>
+                    <button id="clear-chat" class="text-gray-400 hover:text-cyber-green text-sm cyber-text">
+                      <i class="fa fa-trash-o mr-1"></i> 清空
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 聊天消息区域 -->
+                <div id="chat-messages" class="flex-1 overflow-y-auto space-y-4 mb-4">
+                  <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-cyber-green/20 rounded-lg flex items-center justify-center text-cyber-green text-sm border border-cyber-green/30">
+                      <i class="fa fa-robot"></i>
+                    </div>
+                    <div class="flex-1">
+                      <div class="bg-dark/50 border border-gray-700 rounded-lg p-4 text-sm text-gray-300">
+                        <p>您好，我是NexusAI助手。我可以帮您：</p>
+                        <ul class="list-disc pl-5 mt-2 space-y-1">
+                          <li>分析客户数据和行为模式</li>
+                          <li>预测销售趋势和业绩</li>
+                          <li>生成专业的客户邮件</li>
+                          <li>总结会议内容和要点</li>
+                          <li>提供业务数据洞察</li>
+                        </ul>
+                        <p class="mt-2">请选择左侧功能或直接输入您的问题。</p>
+                      </div>
+                      <p class="text-xs text-gray-500 mt-1 cyber-text">刚刚</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 输入区域 -->
+                <div class="border-t border-gray-700 pt-4">
+                  <div class="relative">
+                    <textarea
+                      id="ai-input"
+                      class="w-full px-4 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white min-h-[80px] resize-y"
+                      placeholder="输入您的问题或选择左侧功能..."
+                    ></textarea>
+                    <div class="absolute bottom-3 right-3 flex space-x-2">
+                      <button id="voice-input" class="text-gray-400 hover:text-cyber-green p-2 rounded-full hover:bg-cyber-green/10 border border-transparent hover:border-cyber-green/30 transition-colors">
+                        <i class="fa fa-microphone"></i>
+                      </button>
+                      <button id="send-message" class="text-cyber-green hover:text-cyber-blue p-2 rounded-full hover:bg-cyber-green/10 border border-cyber-green/30 hover:border-cyber-green/50 transition-colors">
+                        <i class="fa fa-paper-plane"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between mt-3">
+                    <div class="flex items-center space-x-2">
+                      <button id="upload-file" class="text-gray-400 hover:text-cyber-green text-sm cyber-text">
+                        <i class="fa fa-paperclip mr-1"></i> 上传文件
+                      </button>
+                      <input type="file" id="file-input" class="hidden">
+                    </div>
+                    <div class="text-xs text-gray-500 cyber-text">
+                      支持文本、语音输入 | 响应由AI生成
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- OpenClaw小龙虾页面 -->
+        <div id="openclaw-page" class="page-content hidden">
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-2">OpenClaw<span class="text-cyber-green">小龙虾</span></h2>
+            <p class="text-gray-400 cyber-text">智能小龙虾管理系统 - 让小龙虾养殖更智能</p>
+          </div>
+
+          <!-- 小龙虾数据概览 -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">总养殖数量</h3>
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-pagelines"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">12,847</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 8.3%
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">较上月</span>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">健康指数</h3>
+                <div class="w-10 h-10 bg-cyber-blue/10 rounded-lg flex items-center justify-center text-cyber-blue border border-cyber-blue/20">
+                  <i class="fa fa-heartbeat"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">94.2%</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 2.1%
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">较上周</span>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">预计产量</h3>
+                <div class="w-10 h-10 bg-cyber-pink/10 rounded-lg flex items-center justify-center text-cyber-pink border border-cyber-pink/20">
+                  <i class="fa fa-line-chart"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">3,520kg</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-arrow-up mr-1"></i> 12.5%
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">预计增长</span>
+              </div>
+            </div>
+
+            <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-400 cyber-text">水质状态</h3>
+                <div class="w-10 h-10 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green border border-cyber-green/20">
+                  <i class="fa fa-tint"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white glow-text">优秀</p>
+              <div class="flex items-center mt-2 text-sm">
+                <span class="text-cyber-green flex items-center cyber-text">
+                  <i class="fa fa-check-circle mr-1"></i> 达标
+                </span>
+                <span class="text-gray-500 ml-2 cyber-text">pH值: 7.2</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 小龙虾养殖监控 -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- 左侧监控面板 -->
+            <div class="lg:col-span-2">
+              <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+                <div class="flex justify-between items-center mb-6">
+                  <h3 class="text-lg font-semibold text-white cyber-text">实时监控</h3>
+                  <div class="flex space-x-2">
+                    <button class="px-3 py-1 text-xs bg-cyber-green/10 text-cyber-green rounded-lg border border-cyber-green/30">实时数据</button>
+                    <button class="px-3 py-1 text-xs text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green rounded-lg border border-transparent hover:border-cyber-green/20">历史记录</button>
+                  </div>
+                </div>
+                
+                <!-- 监控图表 -->
+                <div class="h-80 mb-6">
+                  <canvas id="crayfishMonitoringChart"></canvas>
+                </div>
+
+                <!-- 养殖池状态 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="cyber-glass rounded-lg p-4 border border-cyber-green/20">
+                    <div class="flex items-center justify-between mb-2">
+                      <h4 class="text-sm font-medium text-white cyber-text">1号池</h4>
+                      <span class="w-3 h-3 bg-cyber-green rounded-full animate-pulse"></span>
+                    </div>
+                    <p class="text-xs text-gray-400 cyber-text">数量: 4,235</p>
+                    <p class="text-xs text-gray-400 cyber-text">规格: 2-3钱</p>
+                    <p class="text-xs text-gray-400 cyber-text">健康度: 96%</p>
+                  </div>
+                  <div class="cyber-glass rounded-lg p-4 border border-cyber-green/20">
+                    <div class="flex items-center justify-between mb-2">
+                      <h4 class="text-sm font-medium text-white cyber-text">2号池</h4>
+                      <span class="w-3 h-3 bg-cyber-green rounded-full animate-pulse"></span>
+                    </div>
+                    <p class="text-xs text-gray-400 cyber-text">数量: 3,892</p>
+                    <p class="text-xs text-gray-400 cyber-text">规格: 3-4钱</p>
+                    <p class="text-xs text-gray-400 cyber-text">健康度: 94%</p>
+                  </div>
+                  <div class="cyber-glass rounded-lg p-4 border border-cyber-green/20">
+                    <div class="flex items-center justify-between mb-2">
+                      <h4 class="text-sm font-medium text-white cyber-text">3号池</h4>
+                      <span class="w-3 h-3 bg-cyber-yellow rounded-full animate-pulse"></span>
+                    </div>
+                    <p class="text-xs text-gray-400 cyber-text">数量: 4,720</p>
+                    <p class="text-xs text-gray-400 cyber-text">规格: 2-3钱</p>
+                    <p class="text-xs text-gray-400 cyber-text">健康度: 92%</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 右侧智能分析 -->
+            <div>
+              <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+                <div class="flex justify-between items-center mb-6">
+                  <h3 class="text-lg font-semibold text-white cyber-text">智能分析</h3>
+                  <button class="text-cyber-green hover:text-cyber-blue text-sm cyber-text">
+                    <i class="fa fa-refresh mr-1"></i> 刷新
+                  </button>
+                </div>
+
+                <!-- AI建议 -->
+                <div class="space-y-4">
+                  <div class="p-4 bg-cyber-green/5 border border-cyber-green/30 rounded-lg">
+                    <div class="flex items-start space-x-3">
+                      <div class="w-8 h-8 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green text-xs border border-cyber-green/20">
+                        <i class="fa fa-lightbulb-o"></i>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-white cyber-text">喂食建议</p>
+                        <p class="text-xs text-gray-400 mt-1 cyber-text">根据当前水温(24°C)和小龙虾活跃度，建议今日增加20%的饲料投放量。</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="p-4 bg-cyber-blue/5 border border-cyber-blue/30 rounded-lg">
+                    <div class="flex items-start space-x-3">
+                      <div class="w-8 h-8 bg-cyber-blue/10 rounded-lg flex items-center justify-center text-cyber-blue text-xs border border-cyber-blue/20">
+                        <i class="fa fa-tint"></i>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-white cyber-text">水质管理</p>
+                        <p class="text-xs text-gray-400 mt-1 cyber-text">3号池氨氮含量略有上升，建议增加换水频率，预计24小时内恢复正常。</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="p-4 bg-cyber-pink/5 border border-cyber-pink/30 rounded-lg">
+                    <div class="flex items-start space-x-3">
+                      <div class="w-8 h-8 bg-cyber-pink/10 rounded-lg flex items-center justify-center text-cyber-pink text-xs border border-cyber-pink/20">
+                        <i class="fa fa-calendar"></i>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-white cyber-text">收获预测</p>
+                        <p class="text-xs text-gray-400 mt-1 cyber-text">2号池小龙虾预计7-10天内达到收获标准，预计产量850kg，产值约¥68,000。</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 控制按钮 -->
+                <div class="mt-6 space-y-3">
+                  <button class="w-full bg-cyber-green/20 text-cyber-green py-3 px-4 rounded-lg font-medium hover:bg-cyber-green/30 transition-colors border border-cyber-green/30 hover:border-cyber-green/50">
+                    <i class="fa fa-play mr-2"></i> 启动自动喂食
+                  </button>
+                  <button class="w-full bg-cyber-blue/20 text-cyber-blue py-3 px-4 rounded-lg font-medium hover:bg-cyber-blue/30 transition-colors border border-cyber-blue/30 hover:border-cyber-blue/50">
+                    <i class="fa fa-refresh mr-2"></i> 水质调节
+                  </button>
+                  <button class="w-full bg-cyber-pink/20 text-cyber-pink py-3 px-4 rounded-lg font-medium hover:bg-cyber-pink/30 transition-colors border border-cyber-pink/30 hover:border-cyber-pink/50">
+                    <i class="fa fa-download mr-2"></i> 导出报告
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 小龙虾成长记录 -->
+          <div class="cyber-glass rounded-xl p-6 shadow-soft border border-cyber-green/20">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-lg font-semibold text-white cyber-text">成长记录</h3>
+              <div class="flex space-x-2">
+                <select class="px-3 py-1 text-xs bg-dark/50 border border-gray-700 rounded-lg text-white focus:border-cyber-green">
+                  <option>所有虾池</option>
+                  <option>1号池</option>
+                  <option>2号池</option>
+                  <option>3号池</option>
+                </select>
+                <button class="px-3 py-1 text-xs bg-cyber-green/10 text-cyber-green rounded-lg border border-cyber-green/30">
+                  <i class="fa fa-filter mr-1"></i> 筛选
+                </button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="min-w-full">
+                <thead>
+                  <tr class="border-b border-gray-700">
+                    <th class="px-4 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider cyber-text">日期</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider cyber-text">虾池</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider cyber-text">平均规格</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider cyber-text">健康度</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider cyber-text">体重增长</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-cyber-green uppercase tracking-wider cyber-text">状态</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-700/50">
+                  <tr class="hover:bg-cyber-green/5 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">2024-07-20</td>
+                    <td class="px-4 py-3 text-sm text-white cyber-text">1号池</td>
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">2.8钱</td>
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">96%</td>
+                    <td class="px-4 py-3 text-sm text-cyber-green cyber-text">+0.3钱/天</td>
+                    <td class="px-4 py-3 text-sm text-cyber-green cyber-text">优秀</td>
+                  </tr>
+                  <tr class="hover:bg-cyber-green/5 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">2024-07-20</td>
+                    <td class="px-4 py-3 text-sm text-white cyber-text">2号池</td>
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">3.5钱</td>
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">94%</td>
+                    <td class="px-4 py-3 text-sm text-cyber-green cyber-text">+0.25钱/天</td>
+                    <td class="px-4 py-3 text-sm text-cyber-green cyber-text">优秀</td>
+                  </tr>
+                  <tr class="hover:bg-cyber-green/5 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">2024-07-20</td>
+                    <td class="px-4 py-3 text-sm text-white cyber-text">3号池</td>
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">2.5钱</td>
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">92%</td>
+                    <td class="px-4 py-3 text-sm text-cyber-green cyber-text">+0.2钱/天</td>
+                    <td class="px-4 py-3 text-sm text-cyber-yellow cyber-text">良好</td>
+                  </tr>
+                  <tr class="hover:bg-cyber-green/5 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">2024-07-19</td>
+                    <td class="px-4 py-3 text-sm text-white cyber-text">1号池</td>
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">2.5钱</td>
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">95%</td>
+                    <td class="px-4 py-3 text-sm text-cyber-green cyber-text">+0.28钱/天</td>
+                    <td class="px-4 py-3 text-sm text-cyber-green cyber-text">优秀</td>
+                  </tr>
+                  <tr class="hover:bg-cyber-green/5 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">2024-07-19</td>
+                    <td class="px-4 py-3 text-sm text-white cyber-text">2号池</td>
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">3.25钱</td>
+                    <td class="px-4 py-3 text-sm text-gray-300 cyber-text">93%</td>
+                    <td class="px-4 py-3 text-sm text-cyber-green cyber-text">+0.26钱/天</td>
+                    <td class="px-4 py-3 text-sm text-cyber-green cyber-text">优秀</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 分页 -->
+            <div class="flex items-center justify-between mt-6">
+              <div class="text-sm text-gray-400 cyber-text">
+                显示 1-5 条，共 24 条记录
+              </div>
+              <div class="flex space-x-2">
+                <button class="px-3 py-1 text-xs text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green rounded-lg border border-transparent hover:border-cyber-green/20">
+                  上一页
+                </button>
+                <button class="px-3 py-1 text-xs bg-cyber-green/10 text-cyber-green rounded-lg border border-cyber-green/30">1</button>
+                <button class="px-3 py-1 text-xs text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green rounded-lg border border-transparent hover:border-cyber-green/20">2</button>
+                <button class="px-3 py-1 text-xs text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green rounded-lg border border-transparent hover:border-cyber-green/20">3</button>
+                <button class="px-3 py-1 text-xs text-gray-400 hover:bg-cyber-green/5 hover:text-cyber-green rounded-lg border border-transparent hover:border-cyber-green/20">
+                  下一页
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 系统设置页面 -->
+        <div id="settings-page" class="page-content hidden">
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-2">系统设置</h2>
+            <p class="text-gray-400 cyber-text">管理系统配置和个人偏好设置</p>
+          </div>
+
+          <!-- 设置选项卡 -->
+          <div class="cyber-glass rounded-xl shadow-soft overflow-hidden border border-cyber-green/20">
+            <div class="border-b border-gray-700 bg-dark/50">
+              <nav class="flex space-x-8 px-6">
+                <button class="px-1 py-4 text-cyber-green border-b-2 border-cyber-green font-medium text-sm cyber-text">
+                  个人信息
+                </button>
+                <button class="px-1 py-4 text-gray-400 hover:text-cyber-green border-b-2 border-transparent hover:border-cyber-green/30 text-sm cyber-text">
+                  通知设置
+                </button>
+                <button class="px-1 py-4 text-gray-400 hover:text-cyber-green border-b-2 border-transparent hover:border-cyber-green/30 text-sm cyber-text">
+                  安全设置
+                </button>
+                <button class="px-1 py-4 text-gray-400 hover:text-cyber-green border-b-2 border-transparent hover:border-cyber-green/30 text-sm cyber-text">
+                  系统配置
+                </button>
+              </nav>
+            </div>
+
+            <!-- 个人信息设置 -->
+            <div class="p-6">
+              <form class="space-y-6">
+                <div class="flex items-start space-x-6">
+                  <div class="flex-shrink-0">
+                    <div class="w-20 h-20 bg-cyber-green/20 rounded-lg flex items-center justify-center text-cyber-green text-2xl font-bold border border-cyber-green/30">
+                      张
+                    </div>
+                    <button type="button" class="mt-2 w-full bg-cyber-green/20 text-cyber-green text-xs py-1 rounded border border-cyber-green/30 hover:bg-cyber-green/30 transition-colors">
+                      更换头像
+                    </button>
+                  </div>
+                  
+                  <div class="flex-1 space-y-6">
+                    <div class="grid grid-cols-2 gap-6">
+                      <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2 cyber-text">
+                          姓名
+                        </label>
+                        <input
+                          type="text"
+                          class="w-full px-4 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white"
+                          value="张经理"
+                        >
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2 cyber-text">
+                          职位
+                        </label>
+                        <input
+                          type="text"
+                          class="w-full px-4 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white"
+                          value="系统管理员"
+                        >
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label class="block text-sm font-medium text-gray-300 mb-2 cyber-text">
+                        邮箱地址
+                      </label>
+                      <input
+                        type="email"
+                        class="w-full px-4 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white"
+                        value="demo@nexuscrm.com"
+                      >
+                    </div>
+                    
+                    <div>
+                      <label class="block text-sm font-medium text-gray-300 mb-2 cyber-text">
+                        手机号码
+                      </label>
+                      <input
+                        type="tel"
+                        class="w-full px-4 py-3 bg-dark/50 border border-gray-700 rounded-lg focus:border-cyber-green focus:ring-2 focus:ring-cyber-green/30 transition-all-300 text-white"
+                        value="138****5678"
+                      >
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="pt-6 border-t border-gray-700">
+                  <button
+                    type="submit"
+                    class="bg-cyber-green/20 text-cyber-green px-6 py-3 rounded-lg hover:bg-cyber-green/30 transition-colors border border-cyber-green/30 hover:border-cyber-green/50"
+                  >
+                    保存更改
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- 自定义光标 -->
+  <div class="custom-cursor hidden"></div>
+
+  <!-- 通知面板 -->
+  <div id="notification-panel" class="hidden fixed top-16 right-6 w-80 cyber-glass rounded-xl shadow-lg border border-cyber-green/20 z-50">
+    <div class="p-4 border-b border-gray-700">
+      <h3 class="text-sm font-semibold text-white cyber-text">通知中心</h3>
+    </div>
+    <div class="max-h-96 overflow-y-auto">
+      <div class="p-4 border-b border-gray-700/50 hover:bg-cyber-green/5 transition-colors">
+        <div class="flex items-start space-x-3">
+          <div class="w-8 h-8 bg-cyber-green/10 rounded-lg flex items-center justify-center text-cyber-green text-xs border border-cyber-green/20">
+            <i class="fa fa-check"></i>
+          </div>
+          <div class="flex-1">
+            <p class="text-xs font-medium text-white cyber-text">腾讯科技的合同已审批通过</p>
+            <p class="text-xs text-gray-500 mt-1 cyber-text">15分钟前</p>
+          </div>
+        </div>
+      </div>
+      <div class="p-4 border-b border-gray-700/50 hover:bg-cyber-green/5 transition-colors">
+        <div class="flex items-start space-x-3">
+          <div class="w-8 h-8 bg-cyber-blue/10 rounded-lg flex items-center justify-center text-cyber-blue text-xs border border-cyber-blue/20">
+            <i class="fa fa-comment"></i>
+          </div>
+          <div class="flex-1">
+            <p class="text-xs font-medium text-white cyber-text">阿里巴巴的李明发送了新消息</p>
+            <p class="text-xs text-gray-500 mt-1 cyber-text">1小时前</p>
+          </div>
+        </div>
+      </div>
+      <div class="p-4 border-b border-gray-700/50 hover:bg-cyber-green/5 transition-colors">
+        <div class="flex items-start space-x-3">
+          <div class="w-8 h-8 bg-cyber-pink/10 rounded-lg flex items-center justify-center text-cyber-pink text-xs border border-cyber-pink/20">
+            <i class="fa fa-exclamation"></i>
+          </div>
+          <div class="flex-1">
+            <p class="text-xs font-medium text-white cyber-text">百度的项目进度落后于计划</p>
+            <p class="text-xs text-gray-500 mt-1 cyber-text">2小时前</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="p-3 border-t border-gray-700 text-center">
+      <button class="text-xs text-cyber-green hover:text-cyber-blue cyber-text">
+        查看全部通知
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // 全局变量
+    let particles = [];
+    let connections = [];
+    let animationId;
+
+    // AI助手相关变量
+    let aiHistory = [];
+    let currentAiFeature = 'customer-analysis';
+    let aiMessages = [];
+
+    // 初始化应用
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeBackgroundEffects();
+      initializeEventListeners();
+      initializeCharts();
+      loadDemoData();
+      updateCurrentDate();
+      initializeAiAssistant();
+    });
+
+    // 初始化背景效果
+    function initializeBackgroundEffects() {
+      createParticles();
+      createMatrixRain();
+      animateParticles();
+      setupCustomCursor();
+    }
+
+    // 创建粒子
+    function createParticles() {
+      const container = document.getElementById('particles-container');
+      const particleCount = 50;
+
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 6 + 's';
+        particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+        
+        container.appendChild(particle);
+        particles.push({
+          element: particle,
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5
+        });
+      }
+    }
+
+    // 创建代码雨
+    function createMatrixRain() {
+      const container = document.getElementById('matrix-container');
+      const columnCount = Math.floor(window.innerWidth / 20);
+      const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+
+      for (let i = 0; i < columnCount; i++) {
+        const column = document.createElement('div');
+        column.className = 'matrix-column';
+        column.style.left = i * 20 + 'px';
+        column.style.animationDelay = Math.random() * 3 + 's';
+        column.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        
+        let text = '';
+        const length = Math.floor(Math.random() * 20) + 10;
+        for (let j = 0; j < length; j++) {
+          text += chars[Math.floor(Math.random() * chars.length)] + '<br>';
+        }
+        column.innerHTML = text;
+        
+        container.appendChild(column);
+      }
+    }
+
+    // 动画粒子
+    function animateParticles() {
+      const container = document.getElementById('particles-container');
+      
+      function animate() {
+        // 更新粒子位置
+        particles.forEach(particle => {
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          
+          // 边界检查
+          if (particle.x < 0 || particle.x > window.innerWidth) particle.vx *= -1;
+          if (particle.y < 0 || particle.y > window.innerHeight) particle.vy *= -1;
+          
+          particle.element.style.left = particle.x + 'px';
+          particle.element.style.top = particle.y + 'px';
+        });
+        
+        // 更新连线
+        updateConnections();
+        
+        animationId = requestAnimationFrame(animate);
+      }
+      
+      animate();
+    }
+
+    // 更新粒子连线
+    function updateConnections() {
+      // 清除旧连线
+      connections.forEach(conn => conn.remove());
+      connections = [];
+      
+      const container = document.getElementById('particles-container');
+      const maxDistance = 150;
+      
+      // 创建新连线
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < maxDistance) {
+            const connection = document.createElement('div');
+            connection.className = 'connection';
+            connection.style.left = particles[i].x + 'px';
+            connection.style.top = particles[i].y + 'px';
+            connection.style.width = distance + 'px';
+            connection.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+            connection.style.opacity = (1 - distance / maxDistance) * 0.3;
+            
+            container.appendChild(connection);
+            connections.push(connection);
+          }
+        }
+      }
+    }
+
+    // 初始化AI助手
+    function initializeAiAssistant() {
+      const aiFeatureBtns = document.querySelectorAll('.ai-feature-btn');
+      const sendMessageBtn = document.getElementById('send-message');
+      const aiInput = document.getElementById('ai-input');
+      const clearChatBtn = document.getElementById('clear-chat');
+      const uploadFileBtn = document.getElementById('upload-file');
+      const fileInput = document.getElementById('file-input');
+      const voiceInputBtn = document.getElementById('voice-input');
+
+      // 功能按钮点击事件
+      aiFeatureBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const feature = this.dataset.feature;
+          selectAiFeature(feature);
+        });
+      });
+
+      // 发送消息事件
+      sendMessageBtn.addEventListener('click', sendAiMessage);
+      aiInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendAiMessage();
+        }
+      });
+
+      // 清空聊天
+      clearChatBtn.addEventListener('click', clearAiChat);
+
+      // 上传文件
+      uploadFileBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', handleFileUpload);
+
+      // 语音输入
+      voiceInputBtn.addEventListener('click', toggleVoiceInput);
+
+      // 加载AI历史记录
+      loadAiHistory();
+    }
+
+    // 选择AI功能
+    function selectAiFeature(feature) {
+      currentAiFeature = feature;
+      
+      // 更新按钮样式
+      document.querySelectorAll('.ai-feature-btn').forEach(btn => {
+        if (btn.dataset.feature === feature) {
+          btn.classList.add('bg-cyber-green/10', 'text-cyber-green', 'border-cyber-green/30');
+          btn.classList.remove('text-gray-400', 'border-transparent');
+        } else {
+          btn.classList.remove('bg-cyber-green/10', 'text-cyber-green', 'border-cyber-green/30');
+          btn.classList.add('text-gray-400', 'border-transparent');
+        }
+      });
+
+      // 根据功能生成欢迎消息
+      const featureMessages = {
+        'customer-analysis': '我将帮您分析客户数据和行为模式。您可以询问关于特定客户群体、购买行为或客户价值的问题。',
+        'sales-forecast': '我可以帮您预测销售趋势。请告诉我您想预测的时间范围和产品类别。',
+        'email-generator': '我可以帮您生成专业的客户邮件。请告诉我邮件的目的和关键信息。',
+        'meeting-summary': '我可以帮您总结会议内容。请上传会议记录或告诉我会议的主要内容。',
+        'data-insights': '我可以从您的数据中发现洞察。请告诉我您想分析的业务问题。'
+      };
+
+      addAiMessage(featureMessages[feature] || '您好，我是您的AI助手。请问有什么可以帮助您的？');
+    }
+
+    // 发送AI消息
+    function sendAiMessage() {
+      const aiInput = document.getElementById('ai-input');
+      const message = aiInput.value.trim();
+      
+      if (!message) return;
+
+      // 添加用户消息
+      addUserMessage(message);
+      aiInput.value = '';
+
+      // 显示AI正在输入
+      showAiTyping();
+
+      // 模拟AI响应延迟
+      setTimeout(() => {
+        hideAiTyping();
+        const aiResponse = generateAiResponse(message, currentAiFeature);
+        addAiMessage(aiResponse);
+        
+        // 保存到历史记录
+        saveToAiHistory(message, aiResponse);
+      }, 1500 + Math.random() * 1000);
+    }
+
+    // 生成AI响应
+    function generateAiResponse(message, feature) {
+      // 模拟AI响应，实际项目中应调用真实的AI API
+      const responses = {
+        'customer-analysis': [
+          '根据分析，您的高价值客户主要集中在科技行业，平均客单价为¥158,000，年增长率为12.5%。',
+          '客户留存率为87%，高于行业平均水平。建议加强与流失风险客户的沟通。',
+          '最近30天内，新客户获取成本上升了15%，建议优化营销策略。',
+          '客户购买周期平均为45天，比上季度缩短了5天，表明销售流程效率提升。'
+        ],
+        'sales-forecast': [
+          '基于历史数据，预计下季度销售额将增长18.3%，达到¥4.2M。',
+          '产品A的销售预测显示强劲增长，预计将贡献总销售额的45%。',
+          '华东地区预计将成为增长最快的市场，增长率达22.7%。',
+          '季节性因素分析表明，12月销售额可能会出现30%的峰值。'
+        ],
+        'email-generator': [
+          '已为您生成一封专业的客户跟进邮件。邮件包含了项目进展更新、下一步计划和明确的行动号召。',
+          '根据您的需求，我创建了一封产品推广邮件，突出了产品的核心优势和客户价值。',
+          '这是一封客户感谢邮件，表达了对长期合作的感谢，并提供了专属优惠。',
+          '邮件草稿已生成，包含了会议总结、决策事项和后续安排。'
+        ],
+        'meeting-summary': [
+          '会议总结：讨论了Q3销售目标达成情况，识别了3个关键问题，并制定了相应的解决方案。',
+          '主要决策：1. 增加市场预算15%；2. 优化产品定价策略；3. 加强客户培训。',
+          '会议要点已整理完毕，包含了各部门的行动项和时间节点。',
+          '已提取会议中的关键洞察和建议，形成了一份简洁的执行摘要。'
+        ],
+        'data-insights': [
+          '数据显示，周二和周四的转化率最高，建议在这两天增加营销活动投入。',
+          '发现了一个未被充分开发的客户细分市场，潜在价值约¥2.3M。',
+          '分析表明，客户使用产品的频率与客户满意度呈正相关，每增加10%的使用频率，满意度提升8%。',
+          '识别出3个关键业务指标的异常波动，可能需要进一步调查原因。'
+        ]
+      };
+
+      // 如果有匹配的功能响应，随机选择一个
+      if (responses[feature]) {
+        return responses[feature][Math.floor(Math.random() * responses[feature].length)];
+      }
+
+      // 默认响应
+      return '感谢您的提问。我正在分析您的数据，为您提供最准确的信息。您还有其他问题吗？';
+    }
+
+    // 添加用户消息到聊天界面
+    function addUserMessage(message) {
+      const chatMessages = document.getElementById('chat-messages');
+      const messageElement = document.createElement('div');
+      messageElement.className = 'flex items-start space-x-3 justify-end';
+      messageElement.innerHTML = `
+        <div class="flex-1 max-w-md">
+          <div class="bg-cyber-blue/20 border border-cyber-blue/30 rounded-lg p-4 text-sm text-white">
+            ${message}
+          </div>
+          <p class="text-xs text-gray-500 mt-1 text-right cyber-text">刚刚</p>
+        </div>
+        <div class="w-8 h-8 bg-cyber-blue/20 rounded-lg flex items-center justify-center text-cyber-blue text-sm border border-cyber-blue/30">
+          <span>${currentUser.name.charAt(0)}</span>
+        </div>
+      `;
+      chatMessages.appendChild(messageElement);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      // 保存消息
+      aiMessages.push({
+        type: 'user',
+        content: message,
+        timestamp: new Date()
+      });
+    }
+
+    // 添加AI消息到聊天界面
+    function addAiMessage(message) {
+      const chatMessages = document.getElementById('chat-messages');
+      const messageElement = document.createElement('div');
+      messageElement.className = 'flex items-start space-x-3';
+      messageElement.innerHTML = `
+        <div class="w-8 h-8 bg-cyber-green/20 rounded-lg flex items-center justify-center text-cyber-green text-sm border border-cyber-green/30">
+          <i class="fa fa-robot"></i>
+        </div>
+        <div class="flex-1">
+          <div class="bg-dark/50 border border-gray-700 rounded-lg p-4 text-sm text-gray-300">
+            ${message}
+          </div>
+          <p class="text-xs text-gray-500 mt-1 cyber-text">刚刚</p>
+        </div>
+      `;
+      chatMessages.appendChild(messageElement);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      // 保存消息
+      aiMessages.push({
+        type: 'ai',
+        content: message,
+        timestamp: new Date()
+      });
+    }
+
+    // 显示AI正在输入
+    function showAiTyping() {
+      const chatMessages = document.getElementById('chat-messages');
+      const typingElement = document.createElement('div');
+      typingElement.id = 'ai-typing';
+      typingElement.className = 'flex items-start space-x-3';
+      typingElement.innerHTML = `
+        <div class="w-8 h-8 bg-cyber-green/20 rounded-lg flex items-center justify-center text-cyber-green text-sm border border-cyber-green/30">
+          <i class="fa fa-robot"></i>
+        </div>
+        <div class="flex-1">
+          <div class="bg-dark/50 border border-gray-700 rounded-lg p-4 text-sm text-gray-300">
+            <div class="flex space-x-2">
+              <div class="w-2 h-2 bg-cyber-green rounded-full animate-pulse"></div>
+              <div class="w-2 h-2 bg-cyber-green rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+              <div class="w-2 h-2 bg-cyber-green rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      chatMessages.appendChild(typingElement);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // 隐藏AI正在输入
+    function hideAiTyping() {
+      const typingElement = document.getElementById('ai-typing');
+      if (typingElement) {
+        typingElement.remove();
+      }
+    }
+
+    // 清空AI聊天
+    function clearAiChat() {
+      const chatMessages = document.getElementById('chat-messages');
+      chatMessages.innerHTML = '';
+      aiMessages = [];
+      
+      // 添加欢迎消息
+      addAiMessage('您好，我是NexusAI助手。我可以帮您分析客户数据、预测销售趋势、生成邮件内容、总结会议要点，并提供数据洞察。请问有什么可以帮助您的？');
+    }
+
+    // 处理文件上传
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        addUserMessage(`上传了文件: ${file.name}`);
+        
+        // 模拟文件处理
+        showAiTyping();
+        setTimeout(() => {
+          hideAiTyping();
+          addAiMessage(`已成功处理文件 "${file.name}"。文件包含 ${Math.floor(Math.random() * 100) + 50} 条记录，我已提取了关键信息并准备好进行分析。`);
+        }, 2000);
+      }
+    }
+
+    // 切换语音输入
+    function toggleVoiceInput() {
+      const voiceBtn = document.getElementById('voice-input');
+      
+      if (voiceBtn.classList.contains('text-cyber-green')) {
+        // 停止录音
+        voiceBtn.classList.remove('text-cyber-green', 'animate-pulse');
+        voiceBtn.classList.add('text-gray-400');
+        addAiMessage('语音输入已停止。正在处理您的语音...');
+        
+        // 模拟语音识别
+        setTimeout(() => {
+          const voiceText = getRandomVoiceText();
+          document.getElementById('ai-input').value = voiceText;
+          addAiMessage(`我识别到您说: "${voiceText}"`);
+        }, 1500);
+      } else {
+        // 开始录音
+        voiceBtn.classList.remove('text-gray-400');
+        voiceBtn.classList.add('text-cyber-green', 'animate-pulse');
+        addUserMessage('正在语音输入...');
+      }
+    }
+
+    // 获取随机语音文本
+    function getRandomVoiceText() {
+      const texts = [
+        '分析一下最近三个月的销售数据',
+        '帮我生成一封给腾讯科技的跟进邮件',
+        '预测下个季度的销售业绩',
+        '总结昨天的项目会议要点',
+        '找出客户数据中的异常点'
+      ];
+      return texts[Math.floor(Math.random() * texts.length)];
+    }
+
+    // 保存到AI历史记录
+    function saveToAiHistory(userMessage, aiResponse) {
+      const historyItem = {
+        id: Date.now(),
+        userMessage,
+        aiResponse,
+        feature: currentAiFeature,
+        timestamp: new Date()
+      };
+      
+      aiHistory.unshift(historyItem);
+      if (aiHistory.length > 10) {
+        aiHistory.pop();
+      }
+      
+      updateAiHistoryDisplay();
+    }
+
+    // 更新AI历史记录显示
+    function updateAiHistoryDisplay() {
+      const historyContainer = document.getElementById('ai-history');
+      
+      if (aiHistory.length === 0) {
+        historyContainer.innerHTML = '<div class="text-xs text-gray-500 cyber-text italic">暂无历史记录</div>';
+        return;
+      }
+      
+      historyContainer.innerHTML = aiHistory.map(item => `
+        <div class="text-xs p-2 bg-dark/30 rounded-lg border border-gray-700/50 hover:border-cyber-green/30 cursor-pointer transition-colors" onclick="loadHistoryItem(${item.id})">
+          <p class="text-white truncate">${item.userMessage}</p>
+          <p class="text-cyber-green text-[10px] mt-1">${formatTime(item.timestamp)}</p>
+        </div>
+      `).join('');
+    }
+
+    // 加载历史记录项
+    function loadHistoryItem(id) {
+      const item = aiHistory.find(h => h.id === id);
+      if (item) {
+        clearAiChat();
+        addUserMessage(item.userMessage);
+        addAiMessage(item.aiResponse);
+      }
+    }
+
+    // 加载AI历史记录
+    function loadAiHistory() {
+      // 模拟加载历史记录
+      const mockHistory = [
+        {
+          id: 1,
+          userMessage: '分析一下腾讯科技的客户数据',
+          aiResponse: '腾讯科技是我们的VIP客户，年消费额达到¥2.3M，同比增长18.5%。他们主要购买企业级解决方案，客户满意度评分4.8/5。',
+          feature: 'customer-analysis',
+          timestamp: new Date(Date.now() - 86400000)
+        },
+        {
+          id: 2,
+          userMessage: '预测下个季度的销售',
+          aiResponse: '基于历史数据和市场趋势，预计下季度销售额将达到¥15.6M，同比增长12.3%。增长主要来自华东和华南地区。',
+          feature: 'sales-forecast',
+          timestamp: new Date(Date.now() - 172800000)
+        }
+      ];
+      
+      aiHistory = mockHistory;
+      updateAiHistoryDisplay();
+    }
+
+    // 设置自定义光标
+    function setupCustomCursor() {
+      const cursor = document.querySelector('.custom-cursor');
+      const cursorElements = document.querySelectorAll('button, input, select, a');
+      
+      // 显示光标
+      cursor.classList.remove('hidden');
+      
+      // 跟踪鼠标
+      document.addEventListener('mousemove', (e) => {
+        cursor.style.left = e.clientX + 'px';
+        cursor.style.top = e.clientY + 'px';
+      });
+      
+      // 悬停效果
+      cursorElements.forEach(el => {
+        el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+        el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+      });
+      
+      // 隐藏默认光标
+      document.body.classList.add('cursor-glow');
+    }
+
+    // 初始化事件监听器
+    function initializeEventListeners() {
+      // 登录表单
+      const loginForm = document.getElementById('login-form');
+      const togglePassword = document.getElementById('toggle-password');
+      const loginPassword = document.getElementById('login-password');
+      const loginButton = document.getElementById('login-button');
+      const loginText = document.getElementById('login-text');
+      const loginSpinner = document.getElementById('login-spinner');
+      
+      // 切换密码可见性
+      togglePassword.addEventListener('click', () => {
+        const type = loginPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+        loginPassword.setAttribute('type', type);
+        togglePassword.innerHTML = type === 'password' ? '<i class="fa fa-eye-slash"></i>' : '<i class="fa fa-eye"></i>';
+      });
+      
+      // 登录提交
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('login-email').value;
+        const password = loginPassword.value;
+        
+        if (!email || !password) {
+          showLoginError('请输入邮箱和密码');
+          return;
+        }
+        
+        // 显示加载状态
+        loginText.classList.add('hidden');
+        loginSpinner.classList.remove('hidden');
+        loginButton.disabled = true;
+        
+        // 模拟登录延迟
+        setTimeout(() => {
+          loginText.classList.remove('hidden');
+          loginSpinner.classList.add('hidden');
+          loginButton.disabled = false;
+          
+          // 显示主应用
+          document.getElementById('login-page').classList.add('hidden');
+          document.getElementById('app').classList.remove('hidden');
+          
+          // 更新用户信息
+          document.getElementById('user-name').textContent = '张经理';
+          document.getElementById('user-avatar').textContent = '张';
+          document.getElementById('welcome-name').textContent = '张经理';
+        }, 1500);
+      });
+      
+      // 页面切换
+      const pageButtons = document.querySelectorAll('.page-button');
+      const pageContents = document.querySelectorAll('.page-content');
+      
+      pageButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const targetPage = button.getAttribute('data-page');
+          
+          // 更新按钮状态
+          pageButtons.forEach(btn => {
+            btn.classList.remove('bg-cyber-green/10', 'text-cyber-green', 'border', 'border-cyber-green/30');
+            btn.classList.add('text-gray-400', 'hover:bg-cyber-green/5', 'hover:text-cyber-green', 'border-transparent', 'hover:border-cyber-green/20');
+          });
+          
+          button.classList.remove('text-gray-400', 'hover:bg-cyber-green/5', 'hover:text-cyber-green', 'border-transparent', 'hover:border-cyber-green/20');
+          button.classList.add('bg-cyber-green/10', 'text-cyber-green', 'border', 'border-cyber-green/30');
+          
+          // 显示目标页面
+          pageContents.forEach(page => page.classList.add('hidden'));
+          document.getElementById(`${targetPage}-page`).classList.remove('hidden');
+        });
+      });
+      
+      // 通知按钮
+      const notificationButton = document.getElementById('notification-button');
+      const notificationPanel = document.getElementById('notification-panel');
+      
+      notificationButton.addEventListener('click', () => {
+        notificationPanel.classList.toggle('hidden');
+      });
+      
+      // 点击外部关闭通知面板
+      document.addEventListener('click', (e) => {
+        if (!notificationButton.contains(e.target) && !notificationPanel.contains(e.target)) {
+          notificationPanel.classList.add('hidden');
+        }
+      });
+      
+      // 登出按钮
+      const logoutButton = document.getElementById('logout-button');
+      
+      logoutButton.addEventListener('click', () => {
+        document.getElementById('app').classList.add('hidden');
+        document.getElementById('login-page').classList.remove('hidden');
+      });
+      
+      // 窗口调整大小
+      window.addEventListener('resize', () => {
+        // 重新创建代码雨
+        const matrixContainer = document.getElementById('matrix-container');
+        matrixContainer.innerHTML = '';
+        createMatrixRain();
+      });
+    }
+
+    // 显示登录错误
+    function showLoginError(message) {
+      const errorElement = document.getElementById('login-error');
+      errorElement.textContent = message;
+      errorElement.classList.remove('hidden');
+      
+      setTimeout(() => {
+        errorElement.classList.add('hidden');
+      }, 3000);
+    }
+
+    // 更新当前日期
+    function updateCurrentDate() {
+      const now = new Date();
+      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+      document.getElementById('current-date').textContent = now.toLocaleDateString('zh-CN', options);
+    }
+
+    // 初始化图表
+    function initializeCharts() {
+      // 设置Chart.js全局配置
+      Chart.defaults.color = '#00ff88';
+      Chart.defaults.borderColor = 'rgba(0, 255, 136, 0.2)';
+      Chart.defaults.font.family = 'JetBrains Mono, monospace';
+      
+      // 仪表盘图表
+      createSalesChart();
+      createCustomerSourceChart();
+      
+      // 数据分析页面图表
+      createMonthlySalesChart();
+      createIndustryChart();
+      createSalesFunnelChart();
+      createRegionChart();
+    }
+
+    // 创建销售趋势图表
+    function createSalesChart() {
+      const ctx = document.getElementById('salesChart');
+      if (!ctx) return;
+      
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月'],
+          datasets: [{
+            label: '销售额 (万元)',
+            data: [85, 92, 78, 95, 105, 118, 126],
+            borderColor: '#00ff88',
+            backgroundColor: 'rgba(0, 255, 136, 0.1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 255, 136, 0.1)'
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 创建客户来源图表
+    function createCustomerSourceChart() {
+      const ctx = document.getElementById('customerSourceChart');
+      if (!ctx) return;
+      
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['网站', '推荐', '社交媒体', '电话', '邮件'],
+          datasets: [{
+            data: [35, 25, 20, 15, 5],
+            backgroundColor: [
+              '#00ff88',
+              '#00ccff',
+              '#ff00aa',
+              '#ffff00',
+              '#ff8800'
+            ],
+            borderWidth: 1,
+            borderColor: 'rgba(26, 26, 46, 0.8)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                padding: 20,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 创建月度销售图表
+    function createMonthlySalesChart() {
+      const ctx = document.getElementById('monthlySalesChart');
+      if (!ctx) return;
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+          datasets: [{
+            label: '销售额 (万元)',
+            data: [85, 92, 78, 95, 105, 118, 126, 135, 142, 156, 168, 175],
+            backgroundColor: 'rgba(0, 255, 136, 0.3)',
+            borderColor: '#00ff88',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 255, 136, 0.1)'
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 创建行业分布图表
+    function createIndustryChart() {
+      const ctx = document.getElementById('industryChart');
+      if (!ctx) return;
+      
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['科技', '金融', '教育', '医疗', '制造', '其他'],
+          datasets: [{
+            data: [35, 20, 15, 12, 10, 8],
+            backgroundColor: [
+              '#00ff88',
+              '#00ccff',
+              '#ff00aa',
+              '#ffff00',
+              '#ff8800',
+              '#8800ff'
+            ],
+            borderWidth: 1,
+            borderColor: 'rgba(26, 26, 46, 0.8)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                padding: 20,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 创建销售漏斗图表
+    function createSalesFunnelChart() {
+      const ctx = document.getElementById('salesFunnelChart');
+      if (!ctx) return;
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['线索', '潜在客户', '商机', '方案', '谈判', '成交'],
+          datasets: [{
+            label: '数量',
+            data: [500, 320, 180, 120, 80, 36],
+            backgroundColor: [
+              'rgba(0, 255, 136, 0.8)',
+              'rgba(0, 255, 136, 0.7)',
+              'rgba(0, 255, 136, 0.6)',
+              'rgba(0, 255, 136, 0.5)',
+              'rgba(0, 255, 136, 0.4)',
+              'rgba(0, 255, 136, 0.3)'
+            ],
+            borderColor: '#00ff88',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 255, 136, 0.1)'
+              }
+            },
+            y: {
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 创建地域分布图表
+    function createRegionChart() {
+      const ctx = document.getElementById('regionChart');
+      if (!ctx) return;
+      
+      new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['华东', '华北', '华南', '西部', '东北', '中部'],
+          datasets: [{
+            label: '客户分布',
+            data: [35, 25, 20, 10, 5, 5],
+            backgroundColor: 'rgba(0, 255, 136, 0.2)',
+            borderColor: '#00ff88',
+            borderWidth: 2,
+            pointBackgroundColor: '#00ff88',
+            pointBorderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 255, 136, 0.1)'
+              },
+              angleLines: {
+                color: 'rgba(0, 255, 136, 0.2)'
+              },
+              pointLabels: {
+                color: '#00ff88'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 加载演示数据
+    function loadDemoData() {
+      loadCustomersData();
+      loadContactsData();
+      loadDealsData();
+      loadTasksData();
+    }
+
+    // 加载客户数据
+    function loadCustomersData() {
+      const customers = [
+        { name: '腾讯科技', company: '腾讯控股', industry: '科技', manager: '张经理', value: '¥2,800,000', status: '活跃' },
+        { name: '阿里巴巴', company: '阿里巴巴集团', industry: '科技', manager: '李经理', value: '¥3,200,000', status: '活跃' },
+        { name: '百度', company: '百度公司', industry: '科技', manager: '王经理', value: '¥1,500,000', status: '活跃' },
+        { name: '字节跳动', company: '字节跳动科技', industry: '科技', manager: '张经理', value: '¥800,000', status: '潜在客户' },
+        { name: '美团', company: '美团点评', industry: '服务', manager: '李经理', value: '¥1,200,000', status: '活跃' },
+        { name: '京东', company: '京东集团', industry: '电商', manager: '王经理', value: '¥1,800,000', status: '活跃' },
+        { name: '小米', company: '小米科技', industry: '科技', manager: '张经理', value: '¥950,000', status: '非活跃' },
+        { name: '华为', company: '华为技术', industry: '科技', manager: '李经理', value: '¥4,500,000', status: '活跃' },
+        { name: '滴滴', company: '滴滴出行', industry: '出行', manager: '王经理', value: '¥750,000', status: '潜在客户' },
+        { name: '网易', company: '网易公司', industry: '科技', manager: '张经理', value: '¥1,300,000', status: '活跃' }
+      ];
+
+      const tbody = document.getElementById('customers-table-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = customers.map(customer => `
+        <tr class="hover:bg-cyber-green/5 transition-colors">
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm font-medium text-white cyber-text">${customer.name}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${customer.company}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${customer.industry}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${customer.manager}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-cyber-green cyber-text">${customer.value}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 py-1 text-xs rounded-full bg-cyber-green/20 text-cyber-green border border-cyber-green/30">
+              ${customer.status}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <button class="text-cyber-green hover:text-cyber-blue mr-3">
+              <i class="fa fa-edit"></i>
+            </button>
+            <button class="text-gray-400 hover:text-red-400">
+              <i class="fa fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 加载联系人数据
+    function loadContactsData() {
+      const contacts = [
+        { name: '马化腾', company: '腾讯科技', position: 'CEO', phone: '138****8888', email: 'pony@tencent.com', lastContact: '2天前' },
+        { name: '马云', company: '阿里巴巴', position: '创始人', phone: '139****9999', email: 'jack@alibaba.com', lastContact: '1周前' },
+        { name: '李彦宏', company: '百度', position: 'CEO', phone: '137****7777', email: 'robin@baidu.com', lastContact: '3天前' },
+        { name: '张一鸣', company: '字节跳动', position: 'CEO', phone: '136****6666', email: 'zhang@bytedance.com', lastContact: '5天前' },
+        { name: '王兴', company: '美团', position: 'CEO', phone: '135****5555', email: 'wang@meituan.com', lastContact: '刚刚' }
+      ];
+
+      const tbody = document.getElementById('contacts-table-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = contacts.map(contact => `
+        <tr class="hover:bg-cyber-green/5 transition-colors">
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm font-medium text-white cyber-text">${contact.name}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${contact.company}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${contact.position}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${contact.phone}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-cyber-blue cyber-text">${contact.email}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${contact.lastContact}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <button class="text-cyber-green hover:text-cyber-blue mr-3">
+              <i class="fa fa-phone"></i>
+            </button>
+            <button class="text-cyber-green hover:text-cyber-blue mr-3">
+              <i class="fa fa-envelope"></i>
+            </button>
+            <button class="text-cyber-green hover:text-cyber-blue">
+              <i class="fa fa-edit"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 加载商机数据
+    function loadDealsData() {
+      const deals = [
+        { name: '企业云服务', customer: '腾讯科技', value: '¥850,000', stage: '谈判', manager: '张经理', expected: '2024-08-15' },
+        { name: '电商平台升级', customer: '阿里巴巴', value: '¥1,200,000', stage: '方案', manager: '李经理', expected: '2024-09-20' },
+        { name: '搜索引擎优化', customer: '百度', value: '¥450,000', stage: '提案', manager: '王经理', expected: '2024-08-30' },
+        { name: '短视频营销', customer: '字节跳动', value: '¥680,000', stage: '谈判', manager: '张经理', expected: '2024-08-10' },
+        { name: '本地生活服务', customer: '美团', value: '¥920,000', stage: '签约', manager: '李经理', expected: '2024-07-25' }
+      ];
+
+      const tbody = document.getElementById('deals-table-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = deals.map(deal => `
+        <tr class="hover:bg-cyber-green/5 transition-colors">
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm font-medium text-white cyber-text">${deal.name}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${deal.customer}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-cyber-green cyber-text">${deal.value}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 py-1 text-xs rounded-full bg-cyber-blue/20 text-cyber-blue border border-cyber-blue/30">
+              ${deal.stage}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${deal.manager}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${deal.expected}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <button class="text-cyber-green hover:text-cyber-blue mr-3">
+              <i class="fa fa-edit"></i>
+            </button>
+            <button class="text-gray-400 hover:text-red-400">
+              <i class="fa fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 加载任务数据
+    function loadTasksData() {
+      const tasks = [
+        { name: '客户拜访', customer: '腾讯科技', manager: '张经理', priority: '高', deadline: '2024-07-21', status: '待处理' },
+        { name: '方案设计', customer: '阿里巴巴', manager: '李经理', priority: '中', deadline: '2024-07-25', status: '进行中' },
+        { name: '合同准备', customer: '百度', manager: '王经理', priority: '高', deadline: '2024-07-22', status: '待处理' },
+        { name: '需求分析', customer: '字节跳动', manager: '张经理', priority: '中', deadline: '2024-07-28', status: '待处理' },
+        { name: '项目评审', customer: '美团', manager: '李经理', priority: '高', deadline: '2024-07-21', status: '进行中' }
+      ];
+
+      const tbody = document.getElementById('tasks-table-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = tasks.map(task => `
+        <tr class="hover:bg-cyber-green/5 transition-colors">
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm font-medium text-white cyber-text">${task.name}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${task.customer}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${task.manager}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 py-1 text-xs rounded-full bg-cyber-pink/20 text-cyber-pink border border-cyber-pink/30">
+              ${task.priority}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-400 cyber-text">${task.deadline}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 py-1 text-xs rounded-full bg-cyber-blue/20 text-cyber-blue border border-cyber-blue/30">
+              ${task.status}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <button class="text-cyber-green hover:text-cyber-blue mr-3">
+              <i class="fa fa-check"></i>
+            </button>
+            <button class="text-cyber-green hover:text-cyber-blue mr-3">
+              <i class="fa fa-edit"></i>
+            </button>
+            <button class="text-gray-400 hover:text-red-400">
+              <i class="fa fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 清理函数
+    window.addEventListener('beforeunload', () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    });
+  </script>
+</body>
+</html>
